@@ -1,0 +1,8 @@
+# IntelliJ
+.idea
+yubi_opt.iml
+
+# Rust
+/target
+/Cargo.lock
+
