@@ -27,8 +27,9 @@ pub fn get_public_id(otp: &str) -> Result<&str, &str> {
 #[cfg(test)]
 mod tests {
     use crate::response_state::State;
-    use super::*;
     use crate::yubico_client::YubicoClient;
+
+    use super::*;
 
     #[test]
     fn test_opt_validator() {
@@ -62,7 +63,7 @@ mod tests {
     async fn test_yubico_client() {
         //Hit: Do NOT use the credentials here, these are example credentials from the documentation!
         //Instead get your own api_key and client_id from here: https://upgrade.yubico.com/getapikey/
-        let client = YubicoClient::new(1, "mG5be6ZJU1qBGz24yPh/ESM3UdU=".to_string());
+        let client = YubicoClient::new(1, None);
 
         let x = client
             .verify("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft")
