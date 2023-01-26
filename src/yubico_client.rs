@@ -155,7 +155,7 @@ fn parse_response_body(body: &str) -> Result<VerificationResponse, String> {
                 }
                 "status" => {
                     if let Ok(state) = State::from_str(value) {
-                        verification_response.status(state);
+                        verification_response.state(state);
                     } else {
                         return Err("Unable to parse status response".to_string());
                     }
