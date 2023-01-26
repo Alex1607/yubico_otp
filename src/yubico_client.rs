@@ -4,7 +4,6 @@ use base64::{Engine as _, engine::general_purpose};
 use derive_builder::Builder;
 use hmac::{Hmac, Mac};
 use rand::distributions::{Alphanumeric, DistString};
-use reqwest::Client;
 use sha1::Sha1;
 
 use crate::response_state::State;
@@ -13,8 +12,7 @@ const YUBICO_API_URL: &str = "https://api.yubico.com/wsapi/2.0/verify";
 
 pub struct YubicoClient {
     client_id: usize,
-    api_key: Option<Vec<u8>>,
-    client: Client,
+    key: Option<Vec<u8>>,
 }
 
 #[derive(Builder, Debug)]
@@ -24,7 +22,7 @@ pub struct VerificationResponse {
     pub nonce: String,
     pub h: String,
     pub t: String,
-    pub status: State,
+    pub state: State,
     #[builder(default)]
     pub timestamp: Option<String>,
     #[builder(default)]
@@ -51,23 +49,45 @@ impl YubicoClient {
     /// # Arguments
     ///
     /// * `client_id`: Your Client Id given by you by Yubico
-    /// * `api_key`: Optional, if present it will be using to sign the requests
+    /// * `key`: Optional, if present it will be using to sign the requests
     ///
     /// returns: YubicoClient
     ///
     pub fn new(client_id: usize, api_key: Option<String>) -> YubicoClient {
         YubicoClient {
             client_id,
-            api_key: if let Some(..) = api_key {
+            key: if let Some(..) = api_key {
                 Some(general_purpose::STANDARD.decode(api_key.unwrap()).unwrap())
             } else {
                 None
             },
-            client: Client::new(),
         }
     }
 
-    pub async fn verify(&self, otp: &str) -> Result<VerificationResponse, String> {
+    /// Verify an OTP against the Yubico API.
+    /// Make sure to test the state from the returned ``VerificationResponse``. You should only proceed if the state is `Ok`!
+    ///
+    /// # Arguments
+    ///
+    /// * `otp`: OTP to be verified
+    ///
+    /// returns: Result<VerificationResponse, String>
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use yubiopt::yubico_client::YubicoClient;
+    ///  let client = YubicoClient::new(1, None);
+    ///  match client.verify("Some OTP") {
+    ///      Ok(_) => {
+    ///         println!("Request was successful. Do not forget to test for the Ok state!");
+    ///      }
+    ///      Err(_) => {
+    ///          println!("Oh no, an error occurred");
+    ///      }
+    ///  }
+    /// ```
+    pub fn verify(&self, otp: &str) -> Result<VerificationResponse, String> {
         let mut request = VerificationRequest {
             id: (self.client_id).to_string(),
             nonce: Alphanumeric.sample_string(&mut rand::thread_rng(), 16),
@@ -77,17 +97,16 @@ impl YubicoClient {
             h: None,
         };
 
-        if self.api_key.is_some() {
+        if self.key.is_some() {
             let string = encode_request_query(&request);
 
-            let signed_request = sign_request(self.api_key.as_ref().unwrap(), string.as_str());
+            let signed_request = sign_request(self.key.as_ref().unwrap(), string.as_str());
 
             request.h = Some(signed_request);
         }
 
         let body = self
             .send_request(&encode_request_query(&request))
-            .await
             .map_err(|e| format!("HTTP request error: {:?}", e))?;
 
         let response = parse_response_body(&body)?;
@@ -95,16 +114,12 @@ impl YubicoClient {
         Ok(response)
     }
 
-    async fn send_request(&self, request: &str) -> Result<String, reqwest::Error> {
-        let text = &self
-            .client
-            .get(format!("{}?{}", YUBICO_API_URL, request))
-            .send()
-            .await?
-            .text()
-            .await?;
+    fn send_request(&self, request: &str) -> Result<String, ureq::Error> {
+        let text = ureq::get(format!("{}?{}", YUBICO_API_URL, request).as_ref())
+            .call()?
+            .into_string()?;
 
-        Ok(text.to_owned())
+        Ok(text)
     }
 }
 
