@@ -32,6 +32,7 @@ pub struct VerificationResponse {
     #[builder(default)]
     pub sessionuse: Option<String>,
     #[builder(default)]
+    //TODO: Update SL default value to be missing instead of being 0
     pub sl: usize,
 }
 
@@ -45,6 +46,15 @@ pub struct VerificationRequest {
 }
 
 impl YubicoClient {
+    /// Creates a new YubicoClient for verifying OTPs.
+    ///
+    /// # Arguments
+    ///
+    /// * `client_id`: Your Client Id given by you by Yubico
+    /// * `api_key`: Optional, if present it will be using to sign the requests
+    ///
+    /// returns: YubicoClient
+    ///
     pub fn new(client_id: usize, api_key: Option<String>) -> YubicoClient {
         YubicoClient {
             client_id,
