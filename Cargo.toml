@@ -1,8 +1,8 @@
 [package]
 name = "yubi_opt"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
-homepage = "https://github.com/Alex1607/yubico_otp"
+repository = "https://github.com/Alex1607/yubico_otp"
 readme = "README.md"
 description = "An easy to use Yubico OTPs implementation."
 license = "MIT OR Apache-2.0"

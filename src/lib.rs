@@ -91,8 +91,8 @@ mod tests {
         let another_valid_otp = get_public_id("cccjgjgkhcbbgefdkbbditfjrlniggevfhenublfnrev");
         let invalid_otp = get_public_id("gefdkbbditfjrlniggevfh");
 
-        assert!(valid_otp.ok().is_some());
-        assert!(another_valid_otp.ok().is_some());
+        assert_eq!(valid_otp.ok().unwrap(), "cccjgjgkhcbb");
+        assert_eq!(another_valid_otp.ok().unwrap(), "cccjgjgkhcbb");
         assert!(invalid_otp.err().is_some());
     }
 
