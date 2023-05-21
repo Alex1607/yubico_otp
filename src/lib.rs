@@ -81,8 +81,8 @@ mod tests {
 
         assert!(valid_otp);
         assert!(another_valid_otp);
-        assert_eq!(invalid_otp_char, false);
-        assert_eq!(invalid_otp_length, false);
+        assert!(!invalid_otp_char);
+        assert!(!invalid_otp_length);
     }
 
     #[test]
