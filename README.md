@@ -13,12 +13,39 @@ In case the state was Ok you will probably also want to check the public id of t
 have on record. To get the public id of
 any OTP you can call the `get_public_id` function.
 
-## Code Example:
+## Features
+
+This crate supports both synchronous and asynchronous operation:
+
+- **`sync`** (default): Use `YubicoClient` for synchronous verification
+- **`async`**: Use `YubicoClientAsync` for async/await verification
+
+You can enable the async feature in your `Cargo.toml`:
+
+```toml
+[dependencies]
+yubi_opt = { version = "0.2", features = ["async"] }
+```
+
+Or enable both features:
+
+```toml
+[dependencies]
+yubi_opt = { version = "0.2", features = ["sync", "async"] }
+```
+
+## Code Examples
+
+### Synchronous Example
 
 *Do NOT use the credentials here, these are example credentials from the documentation!*  
 *Instead get your own api_key and client_id from here: https://upgrade.yubico.com/getapikey/*
 
 ```rust
+use yubi_opt::{is_valid_otp, get_public_id};
+use yubi_opt::yubico_client::YubicoClient;
+use yubi_opt::response_state::State;
+
 let client = YubicoClient::new(1, None);
 
 let valid = is_valid_otp("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft");
@@ -26,10 +53,34 @@ let valid = is_valid_otp("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft");
 let public_id = get_public_id("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft");
 
 let x = client
-.verify("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft")
-.unwrap();
+    .verify("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft")
+    .unwrap();
 
 assert_eq!(x.state, State::Ok);
+```
+
+### Async Example
+
+```rust
+use yubi_opt::{is_valid_otp, get_public_id};
+use yubi_opt::yubico_client_async::YubicoClientAsync;
+use yubi_opt::response_state::State;
+
+#[tokio::main]
+async fn main() {
+    let client = YubicoClientAsync::new(1, None);
+    
+    let valid = is_valid_otp("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft");
+    
+    let public_id = get_public_id("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft");
+    
+    let x = client
+        .verify("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft")
+        .await
+        .unwrap();
+    
+    assert_eq!(x.state, State::Ok);
+}
 ```
 
 After that you can check if a) the public ID is as expected and b) if the state is `Ok`.  
