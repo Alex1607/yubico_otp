@@ -15,8 +15,22 @@ bench = false
 
 [dependencies]
 rand = "0.8.5"
-ureq = "2.6.2"
 derive_builder = "0.12.0"
 sha1 = "0.10.5"
 hmac = "0.12.1"
 base64 = "0.21.0"
+
+# Synchronous HTTP client (default)
+ureq = { version = "2.6.2", optional = true }
+
+# Async HTTP client
+reqwest = { version = "0.11", optional = true, default-features = false, features = ["rustls-tls"] }
+tokio = { version = "1", optional = true, features = ["rt"] }
+
+[features]
+default = ["sync"]
+sync = ["ureq"]
+async = ["reqwest", "tokio"]
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }

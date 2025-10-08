@@ -11,9 +11,27 @@
 //!
 //! In case the state was `Ok` you will probably also want to check the public id of the key to compare it against the one you have on record.
 //! To get the public id of any OTP you can call the `get_public_id` function.
+//!
+//! ## Features
+//!
+//! This crate supports both synchronous and asynchronous operation:
+//!
+//! - `sync` (default): Use `YubicoClient` for synchronous verification
+//! - `async`: Use `YubicoClientAsync` for async/await verification
+//!
+//! Enable the async feature in your `Cargo.toml`:
+//! ```toml
+//! [dependencies]
+//! yubi_opt = { version = "0.2", features = ["async"] }
+//! ```
 
-mod response_state;
+pub mod response_state;
+
+#[cfg(feature = "sync")]
 pub mod yubico_client;
+
+#[cfg(feature = "async")]
+pub mod yubico_client_async;
 
 const OTP_MIN_LENGTH: usize = 32;
 const OTP_MAX_LENGTH: usize = 48;
@@ -65,7 +83,7 @@ pub fn get_public_id(otp: &str) -> Result<&str, &str> {
     Ok(otp.split_at(otp.len() - 32).0)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "sync"))]
 mod tests {
     use crate::response_state::State;
     use crate::yubico_client::YubicoClient;
@@ -108,6 +126,52 @@ mod tests {
 
         let x = client
             .verify("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft")
+            .unwrap();
+
+        assert_eq!(x.state, State::ReplayedOtp)
+    }
+}
+
+#[cfg(all(test, feature = "async"))]
+mod async_tests {
+    use crate::response_state::State;
+    use crate::yubico_client_async::YubicoClientAsync;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_opt_validator_async() {
+        let valid_otp = is_valid_otp("cccjgjgkhcbbcvchfkfhiiuunbtnvgihdfiktncvlhck");
+        let another_valid_otp = is_valid_otp("cccjgjgkhcbbgefdkbbditfjrlniggevfhenublfnrev");
+        let invalid_otp_char = is_valid_otp("cccjgjgkhcbbcvchfkツhiiuunbtnvgihdfiktncvlhck");
+        let invalid_otp_length = is_valid_otp("gefdkbbditfjrlniggevfh");
+
+        assert!(valid_otp);
+        assert!(another_valid_otp);
+        assert!(!invalid_otp_char);
+        assert!(!invalid_otp_length);
+    }
+
+    #[tokio::test]
+    async fn test_get_public_id_async() {
+        let valid_otp = get_public_id("cccjgjgkhcbbcvchfkfhiiuunbtnvgihdfiktncvlhck");
+        let another_valid_otp = get_public_id("cccjgjgkhcbbgefdkbbditfjrlniggevfhenublfnrev");
+        let invalid_otp = get_public_id("gefdkbbditfjrlniggevfh");
+
+        assert_eq!(valid_otp.ok().unwrap(), "cccjgjgkhcbb");
+        assert_eq!(another_valid_otp.ok().unwrap(), "cccjgjgkhcbb");
+        assert!(invalid_otp.err().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_yubico_client_async() {
+        //Hit: Do NOT use the credentials here, these are example credentials from the documentation!
+        //Instead get your own api_key and client_id from here: https://upgrade.yubico.com/getapikey/
+        let client = YubicoClientAsync::new(1, None);
+
+        let x = client
+            .verify("vvungrrdhvtklknvrtvuvbbkeidikkvgglrvdgrfcdft")
+            .await
             .unwrap();
 
         assert_eq!(x.state, State::ReplayedOtp)
